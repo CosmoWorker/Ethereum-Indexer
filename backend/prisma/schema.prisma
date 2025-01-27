@@ -12,7 +12,7 @@ model binanceUsers{
   id              Int      @id @default(autoincrement())
   username        String      
   password        String
-  depositAddress  String      
+  depositAddress  String   @unique     
   privateKey      String      
   balance         Float
 }
