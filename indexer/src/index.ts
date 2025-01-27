@@ -3,35 +3,53 @@ import dotenv from "dotenv";
 import {PrismaClient} from "../../backend/node_modules/@prisma/client/default"
 dotenv.config()
 let CURRENT_BLOCK_NUMBER=21709134;
+const etherUnit=Math.pow(10,18); //1 ether = 10^18 wei 
 const prisma=new PrismaClient();
 
-async function main(){
+async function main(op: string){
     //getting interested addresses from the DB
-    const interestedAddress=["0x68c905040BcA2Ed08223621b1305E61CB83a5192", "0x870248D3d08A422006813909694cE6deCF27f2b8", "0x72bB98f9de3FA19614375D860bD3973e44dAB3B8"]
-    const lowercasedInterestedAddress = interestedAddress.map(x=> x.toLowerCase());
+    const userAddresses=await prisma.binanceUsers.findMany({
+        select: {depositAddress: true}
+    })
+    // const interestedAddress=["0x68c905040BcA2Ed08223621b1305E61CB83a5192", "0x870248D3d08A422006813909694cE6deCF27f2b8", "0x72bB98f9de3FA19614375D860bD3973e44dAB3B8"]
+    const interestedAddress = userAddresses.map(x=> x.depositAddress.toLowerCase);
     const HEX_CURRENT_BLOCKNO="0x"+CURRENT_BLOCK_NUMBER.toString(16);
-    const block=await fetchRequest1(HEX_CURRENT_BLOCKNO);
-    if(!block){
-        console.log("Block not found");
+    const req1_block=await fetchRequest1(HEX_CURRENT_BLOCKNO);
+    const req2_block=await fetchRequest2(HEX_CURRENT_BLOCKNO);
+    if(!req1_block || !req2_block){
+        console.log("Either block requests's not found");
         return;
     }
-    if (block.result.transactions.length === 0) {
-        console.log("No transactions in this block");
+    if (req1_block.result.transactions.length === 0 || req2_block.result.transactions.length===0) {
+        console.log("No transactions in either or both block");
         return;
     }
-    for(const txn of block.result.transactions){
-        if(lowercasedInterestedAddress.includes(txn.to)){
-            console.log({
-                hash: txn.hash,
-                from: txn.from,
-                to: txn.to,
-                value: parseInt(txn.value, 16)/Math.pow(10,18)
-            })
+    //updating balance
+    if(req1_block===req2_block){
+        for(const txn of req1_block.result.transactions){
+            if(op==="deposit"&&interestedAddress.includes(txn.to)){
+                await prisma.binanceUsers.update({
+                    where:{depositAddress: txn.to},
+                    data:{
+                        balance: {
+                            increment: parseInt(txn.value, 16)/etherUnit
+                        }
+                    }
+                })
+            }
+            if(op==="withdraw"&& interestedAddress.includes(txn.from)){
+                await prisma.binanceUsers.update({
+                    where:{depositAddress: txn.from},
+                    data:{
+                        balance: {
+                            decrement: parseInt(txn.value, 16)/etherUnit
+                        }
+                    }
+                })
+            }
         }
     }
-
 }
-//updating balance yet to do
 
 async function fetchRequest1(blockNumber: string){
     const body={
@@ -67,5 +85,5 @@ async function fetchRequest2(blockNumber:string) {
     return response.data;
 }
 
-main();
+main("deposit");
 
