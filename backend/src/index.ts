@@ -1,12 +1,14 @@
 import express, {Request, Response} from "express";
 import { HDNodeWallet } from "ethers6";
-import { MNEMONICS } from "./config";
+import {config} from "./config";
 import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken"
 import { mnemonicToSeedSync } from "bip39";
 import cors from "cors";
+import { auth, ER } from "./auth";
 
 const prisma=new PrismaClient();
-const seed=mnemonicToSeedSync(MNEMONICS);
+const seed=mnemonicToSeedSync(config.MNEMONICS);
 
 const app=express();
 app.use(express.json())
@@ -46,10 +48,26 @@ app.post("/signup", async(req, res)=>{
     })
 })
 
+app.post("/signin", async(req: Request, res: Response)=>{
+    const {username, password}=req.body;
+    const user=await prisma.binanceUsers.findFirst({where: {username, password}})
+    if(!user){
+        res.json({
+            message: "No such user"
+        })
+        return;
+    }
+    const token=jwt.sign({userId: user.id}, config.SECRET_KEY);
+    res.json({
+        token: token
+    })
+    
+})
+
 app.get("/depositAddress/:userId", async(req: Request, res: Response)=>{
-    const userId=parseInt(req.params.userId);
+    const userId=req.params.userId;
     const user=await prisma.binanceUsers.findUnique({
-        where:{id: userId}
+        where:{id: Number(userId)}
     })
 
     if(!user){
@@ -65,4 +83,4 @@ app.get("/depositAddress/:userId", async(req: Request, res: Response)=>{
 
 })
 
-app.listen(3000)
+app.listen(config.PORT)

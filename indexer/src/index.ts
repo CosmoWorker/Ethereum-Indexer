@@ -47,6 +47,7 @@ async function main(){
                 console.log("Inconsistent transaction data")
             }
         }
+        
         /* CAN'T WITHDRAW FROM SAME DEPOSIT ADDRESS BUT NEED TO SWEEP AND THEN WITHDRAW FROM ANOTHER ADDRESS (WALLET) */
         if(interestedAddress.includes(txn.from)){
             await prisma.binanceUsers.update({ 

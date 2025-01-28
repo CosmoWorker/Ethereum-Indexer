@@ -17,8 +17,8 @@ model binanceUsers{
   balance         Float
 }
 
-/*
-  model withdrawalHotWallet{
-  
-  }
-*/
+model withdrawalHotWallet{ //yet to implement 
+  id              Int      @id @default(autoincrement())
+  value           Float
+  userToAddress   String   @unique
+}
