@@ -16,3 +16,9 @@ model binanceUsers{
   privateKey      String      
   balance         Float
 }
+
+/*
+  model withdrawalHotWallet{
+  
+  }
+*/

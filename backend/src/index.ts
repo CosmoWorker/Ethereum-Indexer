@@ -32,7 +32,7 @@ app.post("/signup", async(req, res)=>{
     await prisma.binanceUsers.update({
         where:{ id: userId},
         data:{
-            depositAddress: child.address,
+            depositAddress: child.address.toLowerCase(),
             privateKey: child.privateKey,
         }
     })

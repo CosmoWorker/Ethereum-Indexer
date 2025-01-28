@@ -5,17 +5,23 @@ dotenv.config()
 let CURRENT_BLOCK_NUMBER=21709134;
 const etherUnit=Math.pow(10,18); //1 ether = 10^18 wei 
 const prisma=new PrismaClient();
+type Transaction={
+    hash: string,
+    to: string,
+    from: string,
+    value: string
+}
 
-async function main(op: string){
+async function main(){
     //getting interested addresses from the DB
     const userAddresses=await prisma.binanceUsers.findMany({
         select: {depositAddress: true}
     })
     // const interestedAddress=["0x68c905040BcA2Ed08223621b1305E61CB83a5192", "0x870248D3d08A422006813909694cE6deCF27f2b8", "0x72bB98f9de3FA19614375D860bD3973e44dAB3B8"]
-    const interestedAddress = userAddresses.map(x=> x.depositAddress.toLowerCase);
+    const interestedAddress = userAddresses.map(x=> x.depositAddress);
     const HEX_CURRENT_BLOCKNO="0x"+CURRENT_BLOCK_NUMBER.toString(16);
-    const req1_block=await fetchRequest1(HEX_CURRENT_BLOCKNO);
-    const req2_block=await fetchRequest2(HEX_CURRENT_BLOCKNO);
+    const req1_block:{result: {transactions: Transaction[]}}=await fetchRequest1(HEX_CURRENT_BLOCKNO);
+    const req2_block:{result: {transactions: Transaction[]}}=await fetchRequest2(HEX_CURRENT_BLOCKNO);
     if(!req1_block || !req2_block){
         console.log("Either block requests's not found");
         return;
@@ -25,28 +31,32 @@ async function main(op: string){
         return;
     }
     //updating balance
-    if(req1_block===req2_block){
-        for(const txn of req1_block.result.transactions){
-            if(op==="deposit"&&interestedAddress.includes(txn.to)){
+    for(const txn of req1_block.result.transactions){
+        if(interestedAddress.includes(txn.to)){
+            const txnReq2=req2_block.result.transactions.find((t)=>t.hash===txn.hash);
+            if(txnReq2 && txnReq2.to===txn.to && txnReq2.value===txn.value){
                 await prisma.binanceUsers.update({
-                    where:{depositAddress: txn.to},
+                    where:{depositAddress: txn.to}, 
                     data:{
                         balance: {
                             increment: parseInt(txn.value, 16)/etherUnit
                         }
                     }
                 })
+            }else{
+                console.log("Inconsistent transaction data")
             }
-            if(op==="withdraw"&& interestedAddress.includes(txn.from)){
-                await prisma.binanceUsers.update({
-                    where:{depositAddress: txn.from},
-                    data:{
-                        balance: {
-                            decrement: parseInt(txn.value, 16)/etherUnit
-                        }
+        }
+        /* CAN'T WITHDRAW FROM SAME DEPOSIT ADDRESS BUT NEED TO SWEEP AND THEN WITHDRAW FROM ANOTHER ADDRESS (WALLET) */
+        if(interestedAddress.includes(txn.from)){
+            await prisma.binanceUsers.update({ 
+                where:{depositAddress: txn.from},
+                data:{
+                    balance: {
+                        decrement: parseInt(txn.value, 16)/etherUnit
                     }
-                })
-            }
+                }
+            })
         }
     }
 }
@@ -85,5 +95,13 @@ async function fetchRequest2(blockNumber:string) {
     return response.data;
 }
 
-main("deposit");
-
+async function runIndexer() {
+    for(;;){
+        try{
+            await main()
+        }catch(e){
+            console.log(`Error Running the Indexer: ${e}`)
+        }
+    }
+}
+runIndexer();
