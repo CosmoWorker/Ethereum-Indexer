@@ -49,16 +49,6 @@ async function main(){
         }
         
         /* CAN'T WITHDRAW FROM SAME DEPOSIT ADDRESS BUT NEED TO SWEEP AND THEN WITHDRAW FROM ANOTHER ADDRESS (WALLET) */
-        if(interestedAddress.includes(txn.from)){
-            await prisma.binanceUsers.update({ 
-                where:{depositAddress: txn.from},
-                data:{
-                    balance: {
-                        decrement: parseInt(txn.value, 16)/etherUnit
-                    }
-                }
-            })
-        }
     }
 }
 
