@@ -1,15 +1,14 @@
 import express, {Request, Response} from "express";
-import { HDNodeWallet } from "ethers6";
+import { ethers, HDNodeWallet } from "ethers6";
 import {config} from "./config";
 import { PrismaClient } from "@prisma/client";
 import jwt from "jsonwebtoken"
 import { mnemonicToSeedSync } from "bip39";
 import cors from "cors";
-import { auth, ER } from "./auth";
+import { auth } from "./auth";
 
 const prisma=new PrismaClient();
 const seed=mnemonicToSeedSync(config.MNEMONICS);
-
 const app=express();
 app.use(express.json())
 app.use(cors());
@@ -48,7 +47,7 @@ app.post("/signup", async(req, res)=>{
     })
 })
 
-app.post("/signin", async(req: Request, res: Response)=>{
+app.post("/signin", async(req, res)=>{
     const {username, password}=req.body;
     const user=await prisma.binanceUsers.findFirst({where: {username, password}})
     if(!user){
@@ -64,23 +63,75 @@ app.post("/signin", async(req: Request, res: Response)=>{
     
 })
 
-app.get("/depositAddress/:userId", async(req: Request, res: Response)=>{
+app.get("/depositAddress/:userId", async(req, res)=>{
     const userId=req.params.userId;
     const user=await prisma.binanceUsers.findUnique({
         where:{id: Number(userId)}
     })
-
     if(!user){
         res.json({
             message: "User not found"
         })
         return;
     }
-
     res.json({
         depositAddress: user.depositAddress
     })
+})
 
+app.post("/withdrawAddress", auth, async(req, res)=>{
+    const {amount, toAddress, userId}= req.body;
+    const user=await prisma.binanceUsers.findFirst({
+        where:{id: userId}
+    })
+    if(!user){
+        res.json({message:"No user found"});
+        return;
+    }
+    //@ts-ignore
+    if(amount>user.balance){
+        res.json({message: "Insufficient Balance"});
+        return;
+    }
+    (async()=>{
+        const provider=new ethers.JsonRpcProvider(config.RPC_URL);
+        const signer=new ethers.Wallet(user.privateKey, provider);
+        const txn=await signer.sendTransaction({
+            to: toAddress,
+            value: ethers.parseUnits(amount.toString(), 'ether')
+        })
+        if(!txn){
+            console.log("Issue with transaction");
+            return;
+        }
+
+        //update in withdrawal model
+        //   |
+        //   |
+        //  \/
+        /*
+        await prisma.withdrawalHotWallet.create({
+            data:{
+                id: userId,
+                value: amount
+                userToAddress: toAddress
+                TransactionHash: txn.hash
+            }
+        })
+        
+        */
+
+
+        await prisma.binanceUsers.update({
+            where: {id: userId},
+            data:{
+                balance: {
+                    decrement: amount
+                }
+            }
+        })
+    })
+    
 })
 
 app.listen(config.PORT)

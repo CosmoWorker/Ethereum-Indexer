@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { config } from "./config";
 
 export interface ER extends Request{
-    userId: string
+    userId?: string
 }
 export const auth=(req: ER, res: Response, next: NextFunction)=>{
     const token=req.headers.authorization;

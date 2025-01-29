@@ -17,8 +17,9 @@ model binanceUsers{
   balance         Float
 }
 
-model withdrawalHotWallet{ //yet to implement 
-  id              Int      @id @default(autoincrement())
-  value           Float
-  userToAddress   String   @unique
+model withdrawalHotWallet{ //can include foreign key "id"
+  id                Int                @id @default(autoincrement())
+  value             Float
+  userToAddress     String             @unique
+  TransactionHash   String             @unique
 }
