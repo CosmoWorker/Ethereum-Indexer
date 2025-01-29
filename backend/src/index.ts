@@ -105,23 +105,17 @@ app.post("/withdrawAddress", auth, async(req, res)=>{
             return;
         }
 
-        //update in withdrawal model
-        //   |
-        //   |
-        //  \/
-        /*
+        //storing details of successful transaction in new withdrawal model
         await prisma.withdrawalHotWallet.create({
             data:{
                 id: userId,
-                value: amount
-                userToAddress: toAddress
+                value: amount,
+                userToAddress: toAddress,
                 TransactionHash: txn.hash
             }
         })
-        
-        */
 
-
+        //updating original binance user model's balance
         await prisma.binanceUsers.update({
             where: {id: userId},
             data:{
