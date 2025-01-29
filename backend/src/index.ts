@@ -110,6 +110,7 @@ app.post("/withdrawAddress", auth, async(req, res)=>{
             data:{
                 id: userId,
                 value: amount,
+                withdrawalFromAddres: signer.address,
                 userToAddress: toAddress,
                 TransactionHash: txn.hash
             }

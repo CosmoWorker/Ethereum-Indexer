@@ -18,8 +18,10 @@ model binanceUsers{
 }
 
 model withdrawalHotWallet{ //can implement relation  "id"
-  id                Int                @id @default(autoincrement())
-  value             Float
-  userToAddress     String             @unique
-  TransactionHash   String             @unique
+  id                      Int                @id @default(autoincrement())
+  value                   Float
+  withdrawalFromAddres    String             
+  userToAddress           String             
+  TransactionHash         String             @unique
+  timestamp               DateTime           @default(now())
 }
