@@ -95,7 +95,7 @@ app.post("/withdrawAddress", auth, async(req, res)=>{
     }
     (async()=>{
         const provider=new ethers.JsonRpcProvider(config.RPC_URL);
-        const signer=new ethers.Wallet(user.privateKey, provider);
+        const signer=new ethers.Wallet(config.HOT_WALLET_PRIVATE, provider);
         const txn=await signer.sendTransaction({
             to: toAddress,
             value: ethers.parseUnits(amount.toString(), 'ether')
@@ -125,8 +125,13 @@ app.post("/withdrawAddress", auth, async(req, res)=>{
                 }
             }
         })
-    })
-    
+
+        res.json({
+            message: "Withdrawn Successfully",
+            "transaction hash" : txn.hash,
+            "Amount Withdrawed": amount
+        })
+    })();
 })
 
 app.listen(config.PORT)
