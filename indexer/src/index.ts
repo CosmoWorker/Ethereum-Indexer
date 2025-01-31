@@ -1,9 +1,11 @@
 import axios from 'axios';
-import dotenv from "dotenv";
+import dotenv, { config } from "dotenv";
 import {PrismaClient} from "../../backend/node_modules/@prisma/client/default"
+import { JsonRpcProvider } from 'ethers';
 dotenv.config()
-let CURRENT_BLOCK_NUMBER=21709134;
 const etherUnit=Math.pow(10,18); //1 ether = 10^18 wei 
+const provider=new JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
+let CURRENT_BLOCK_NUMBER;
 const prisma=new PrismaClient();
 type Transaction={
     hash: string,
@@ -14,6 +16,7 @@ type Transaction={
 
 async function main(){
     //getting interested addresses from the DB
+    CURRENT_BLOCK_NUMBER=await provider.getBlockNumber();
     const userAddresses=await prisma.binanceUsers.findMany({
         select: {depositAddress: true}
     })
