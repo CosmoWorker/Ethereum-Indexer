@@ -1,5 +1,5 @@
 import axios from 'axios';
-import dotenv, { config } from "dotenv";
+import dotenv from "dotenv";
 import {PrismaClient} from "../../backend/node_modules/@prisma/client/default"
 import { JsonRpcProvider } from 'ethers';
 dotenv.config()
